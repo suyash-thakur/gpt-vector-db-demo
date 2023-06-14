@@ -1,0 +1,16 @@
+{
+  "name": "llm-demo",
+  "version": "1.0.0",
+  "description": "This is a demo for vectorDB and llm",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@pinecone-database/pinecone": "^0.1.6",
+    "dotenv": "^16.1.4",
+    "openai": "^3.3.0"
+  }
+}
