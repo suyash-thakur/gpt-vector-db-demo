@@ -11,6 +11,6 @@
   "dependencies": {
     "@pinecone-database/pinecone": "^0.1.6",
     "dotenv": "^16.1.4",
-    "openai": "^3.3.0"
+    "openai": "^4.0.0"
   }
 }

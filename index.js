@@ -1,17 +1,16 @@
 const fs = require('fs');
 
-const { Configuration, OpenAIApi } = require('openai');
+const OpenAI = require('openai');
 const { PineconeClient } = require('@pinecone-database/pinecone');
 
 const dotenv = require('dotenv');
 
 dotenv.config();
 
-const configuration = new Configuration({
+
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const openai = new OpenAIApi(configuration);
 
 const pinecone = new PineconeClient();
 
@@ -28,9 +27,9 @@ const getChatCompletion = async ({ messages }) => {
   };
   let response;
   try {
-    response = await openai.createChatCompletion(config);
-    if (response.data.choices) {
-      return response.data.choices[0].message.content;
+    response = await openai.chat.completions.create(config);
+    if (response.choices) {
+      return response.choices[0].message.content;
     }
   } catch (error) {
     console.log('error', error);
@@ -49,7 +48,7 @@ const createEmbedding = async ({ input }) => {
 
   let response;
   try {
-    response = await openai.createEmbedding(config);
+    response = await openai.embeddings.create(config);
     return response.data;
   } catch (error) {
     console.log(error);
@@ -99,10 +98,9 @@ const createAndStoreEmbeddings = async ({ lines, index }) => {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const embedding = await createEmbedding({ input: line.text });
-    console.log('embedding', embedding);
     const pineconeDocument = {
       id: `vec_${i}`,
-      values: embedding.data[0].embedding,
+      values: embedding[0].embedding,
       metadata: {
         text: line.text,
       }
@@ -120,7 +118,7 @@ const addEmbeddingToText = async (index) => {
 // Get question embedding
 const getGetQuestionEmbedding = async (question) => {
   const data = await createEmbedding({ input: question });
-  const vector = data.data[0].embedding;
+  const vector = data[0].embedding;
   return vector;
 };
 
@@ -180,7 +178,7 @@ const start = async () => {
     apiKey: process.env.PINE_CONE_API_KEY,
   });
   const index = await pinecone.Index(pineconeIndexName);
-  // await addEmbeddingToText(index);
+  await addEmbeddingToText(index);
   const question = `Which regions were involved in gallic war ?`;
   const content = await getSimilarContent(index, question);
   const response = await getChatResponse({
