@@ -2,7 +2,7 @@ const fs = require('fs');
 
 const openAI = require('openai');
 
-const { PineconeClient } = require('@pinecone-database/pinecone');
+const { Pinecone } = require('@pinecone-database/pinecone');
 
 const dotenv = require('dotenv');
 
@@ -54,7 +54,8 @@ const createChunk = async () => {
 const createOpenAIEmbeddings = async (chunk) => {
   const embeddings = await openai.embeddings.create({
     input: chunk,
-    model: 'text-embedding-ada-002',
+    model: 'text-embedding-3-small',
+    dimensions: 1024,
   });
   return embeddings;
 };
@@ -88,24 +89,18 @@ const uploadEmbeddings = async (embeddings, index) => {
     });
   }
   console.log(embeddingsToUpload);
-  await index.upsert({
-    upsertRequest: {
-      vectors: embeddingsToUpload,
-      namespace: pineConeNameSpace,
-    },
-  });
+  await index.upsert(embeddingsToUpload);
 }
 
 const findSimilar = async (index, vector) => {
   const requestQuery = {
     vector,
-    topK: 3,
+    topK: 1,
     includeValues: false,
     includeMetadata: true,
-    namespace: pineConeNameSpace,
   }
 
-  const response = await index.query({ queryRequest: requestQuery });
+  const response = await index.query(requestQuery);
   return response;
 };
 
@@ -124,31 +119,24 @@ const createOpenAIResponse = async (question, context) => {
 
 
 
-const pinecone = new PineconeClient();
+const pinecone = new Pinecone({
+  apiKey: process.env.PINECONE_API_KEY,
+});
 
 const pineconeIndexName = process.env.PINE_CONE_INDEX;
 
 const pineConeNameSpace = process.env.PINE_CONE_NAMESPACE;
 
-const pineConeApiKey = process.env.PINE_CONE_API_KEY;
-
-
-
-
-
 const start = async () => {
-  await pinecone.init({
-    environment: process.env.PINE_CONE_ENVIRIONMENT,
-    apiKey: process.env.PINE_CONE_API_KEY,
-  });
-  const index = await pinecone.Index(pineconeIndexName);
+
+  const index = await pinecone.index(pineconeIndexName).namespace(pineConeNameSpace);
 
   // await cleanWikipediaText();
   // const embeddings = await createEmbeddingForChunks();
   // await uploadEmbeddings(embeddings, index);
-  const question = `WHat is virat kohli's wife name`;
+  const question = `Who is Virat kohli father`;
   const questionEmbedding = await createOpenAIEmbeddings(question);
-  // console.log(questionEmbedding.data[0].embedding);
+  console.log(questionEmbedding.data[0].embedding);
   const similarVectors = await findSimilar(index, questionEmbedding.data[0].embedding);
   console.dir({ similarVectors }, { depth: null });
   const gptResponse = await createOpenAIResponse(question, similarVectors.matches[0].metadata.text);
